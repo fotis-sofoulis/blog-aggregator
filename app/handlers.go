@@ -74,3 +74,15 @@ func HandlerRegister(s *State, cmd Command) error {
 	return nil
 
 }
+
+func HandlerReset(s *State, cmd Command) error {
+	ctx := context.Background()
+	if err := s.Db.DropUsers(ctx); err != nil {
+		fmt.Fprintln(os.Stderr, "failed to truncate users table:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Users table reset successully")
+
+	return nil
+}
