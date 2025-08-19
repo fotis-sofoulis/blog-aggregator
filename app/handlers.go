@@ -107,3 +107,15 @@ func HandlerUsers(s *State, cmd Command) error {
 	return nil
 	
 }
+
+func HandlerAggregate(s *State, cmd Command) error {
+	ctx := context.Background()
+	feed, err := FetchFeed(ctx, "https://www.wagslane.dev/index.xml") 
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "could not fetch feed:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(feed)
+	return nil
+}
