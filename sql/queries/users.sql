@@ -8,8 +8,11 @@ VALUES (
 )
 RETURNING *;
 
--- name: GetUser :one
+-- name: GetUserByName :one
 SELECT * FROM users WHERE name = $1;
+
+-- name: GetUsers :many
+SELECT * FROM users;
 
 -- name: DropUsers :exec
 TRUNCATE TABLE users RESTART IDENTITY;

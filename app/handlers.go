@@ -18,7 +18,7 @@ func HandlerLogin(s *State, cmd Command) error {
 	name := cmd.Args[0]
 	ctx := context.Background()
 
-	_, err := s.Db.GetUser(ctx, name)
+	_, err := s.Db.GetUserByName(ctx, name)
 	if err == sql.ErrNoRows {
 		fmt.Fprintf(os.Stderr, "user %s does not exist\n", name)
 		os.Exit(1)
@@ -43,7 +43,7 @@ func HandlerRegister(s *State, cmd Command) error {
 	ctx := context.Background()
 	name := cmd.Args[0]
 
-	_, err := s.Db.GetUser(ctx, name)
+	_, err := s.Db.GetUserByName(ctx, name)
 	if err == nil {
 		fmt.Fprintf(os.Stderr, "user %s already exists\n", name)
 		os.Exit(1)
@@ -85,4 +85,25 @@ func HandlerReset(s *State, cmd Command) error {
 	fmt.Println("Users table reset successully")
 
 	return nil
+}
+
+func HandlerUsers(s *State, cmd Command) error {
+	ctx := context.Background()
+	currUser := s.Cfg.CurrentUserName
+	
+	users, err := s.Db.GetUsers(ctx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "could not get users:", err)
+		os.Exit(1)
+	}
+
+	for _, user := range users {
+		if user.Name == currUser {
+			fmt.Printf("* %s (current)\n", user.Name)
+		}
+		fmt.Printf("* %s\n", user.Name)
+	}
+
+	return nil
+	
 }
