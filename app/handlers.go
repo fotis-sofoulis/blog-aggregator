@@ -84,7 +84,7 @@ func HandlerReset(s *State, cmd Command) error {
 	return nil
 }
 
-func HandlerUsers(s *State, cmd Command) error {
+func HandlerGetUsers(s *State, cmd Command) error {
 	ctx := context.Background()
 	currUserName := s.Cfg.CurrentUserName
 	if currUserName == "" {
@@ -93,8 +93,7 @@ func HandlerUsers(s *State, cmd Command) error {
 	
 	users, err := s.Db.GetUsers(ctx)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not get users:", err)
-		os.Exit(1)
+		return fmt.Errorf("could not get users: %w", err)
 	}
 
 	for _, user := range users {
@@ -160,4 +159,19 @@ func HandlerAddFeed(s *State, cmd Command) error {
 
 	return nil
 
+}
+
+func HandlerGetFeeds(s *State, cmd Command) error {
+	ctx := context.Background()
+	
+	feeds, err := s.Db.GetFeeds(ctx)
+	if err != nil {
+		return fmt.Errorf("could not get feeds: %w", err)
+	}
+
+	for _, feed := range feeds {
+		fmt.Printf("Name: %s\nURL: %s\nCreated By: %s\n", feed.FeedName, feed.Url, feed.UserName)
+	}
+
+	return nil
 }
