@@ -48,7 +48,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const dropUsers = `-- name: DropUsers :exec
-TRUNCATE TABLE users RESTART IDENTITY
+TRUNCATE TABLE users RESTART IDENTITY CASCADE
 `
 
 func (q *Queries) DropUsers(ctx context.Context) error {

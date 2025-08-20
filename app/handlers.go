@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// User Handlers
 func HandlerLogin(s *State, cmd Command) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: %s <name>", cmd.Name)
@@ -50,16 +51,12 @@ func HandlerRegister(s *State, cmd Command) error {
 	} else if err != sql.ErrNoRows {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
-
-
-	id := uuid.New()
-	created_at := time.Now()
-	updated_at := created_at
 	
+	now := time.Now()
 	args := database.CreateUserParams{
-		ID: id,
-		CreatedAt: created_at,
-		UpdatedAt: updated_at,
+		ID: uuid.New(),
+		CreatedAt: now,
+		UpdatedAt: now,
 		Name: name,
 	}
 
@@ -89,7 +86,10 @@ func HandlerReset(s *State, cmd Command) error {
 
 func HandlerUsers(s *State, cmd Command) error {
 	ctx := context.Background()
-	currUser := s.Cfg.CurrentUserName
+	currUserName := s.Cfg.CurrentUserName
+	if currUserName == "" {
+		return fmt.Errorf("no users found, please register a user")
+	}
 	
 	users, err := s.Db.GetUsers(ctx)
 	if err != nil {
@@ -98,7 +98,7 @@ func HandlerUsers(s *State, cmd Command) error {
 	}
 
 	for _, user := range users {
-		if user.Name == currUser {
+		if user.Name == currUserName {
 			fmt.Printf("* %s (current)\n", user.Name)
 		}
 		fmt.Printf("* %s\n", user.Name)
@@ -108,14 +108,56 @@ func HandlerUsers(s *State, cmd Command) error {
 	
 }
 
+// Feed Handlers
 func HandlerAggregate(s *State, cmd Command) error {
 	ctx := context.Background()
 	feed, err := FetchFeed(ctx, "https://www.wagslane.dev/index.xml") 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not fetch feed:", err)
-		os.Exit(1)
+		return fmt.Errorf("couldn't fetch feed: %w", err)
 	}
 
 	fmt.Println(feed)
 	return nil
+}
+
+func HandlerAddFeed(s *State, cmd Command) error {
+	if len(cmd.Args) != 2 {
+		fmt.Fprintf(os.Stderr, "usage: %s <feed_name> <feed_url>", cmd.Name)
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	currUserName := s.Cfg.CurrentUserName
+	if currUserName == "" {
+		return fmt.Errorf("no users found, please register or login to add feed")
+	}
+
+	currUser, err := s.Db.GetUserByName(ctx, currUserName)
+	if err != nil {
+		return fmt.Errorf("could not find user: %w", err)
+	}
+
+	now := time.Now()
+	args := database.AddFeedParams{
+		ID: uuid.New(),
+		Name: cmd.Args[0],
+		UserID: currUser.ID,
+		Url: cmd.Args[1],
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	feed, err := s.Db.AddFeed(ctx, args)
+	if err != nil {
+		return fmt.Errorf("could not add feed: %w", err)
+	}
+
+	fmt.Printf("Feed created:\n")
+	fmt.Printf("ID:        %s\n", feed.ID)
+	fmt.Printf("Name:      %s\n", feed.Name)
+	fmt.Printf("URL:       %s\n", feed.Url)
+	fmt.Printf("UserID:    %s\n", feed.UserID)
+
+	return nil
+
 }

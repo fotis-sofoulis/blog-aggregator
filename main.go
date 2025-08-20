@@ -38,6 +38,7 @@ func main() {
 	cmds.Register("reset", app.HandlerReset)
 	cmds.Register("users", app.HandlerUsers)
 	cmds.Register("agg", app.HandlerAggregate)
+	cmds.Register("addfeed", app.HandlerAddFeed)
 
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: cli <command> [args...]")
