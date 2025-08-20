@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/fotis-sofoulis/blog-aggregator/internal/database"
@@ -21,8 +20,7 @@ func HandlerLogin(s *State, cmd Command) error {
 
 	_, err := s.Db.GetUserByName(ctx, name)
 	if err == sql.ErrNoRows {
-		fmt.Fprintf(os.Stderr, "user %s does not exist\n", name)
-		os.Exit(1)
+		return fmt.Errorf("user does not exist: %w", err)
 	} else if err != nil {
 		return fmt.Errorf("failed to look up user: %w", err)
 	}
@@ -46,8 +44,7 @@ func HandlerRegister(s *State, cmd Command) error {
 
 	_, err := s.Db.GetUserByName(ctx, name)
 	if err == nil {
-		fmt.Fprintf(os.Stderr, "user %s already exists\n", name)
-		os.Exit(1)
+		return fmt.Errorf("user already exists: %w", err)
 	} else if err != sql.ErrNoRows {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
@@ -75,8 +72,7 @@ func HandlerRegister(s *State, cmd Command) error {
 func HandlerReset(s *State, cmd Command) error {
 	ctx := context.Background()
 	if err := s.Db.DropUsers(ctx); err != nil {
-		fmt.Fprintln(os.Stderr, "failed to truncate users table:", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to truncate users table: %w", err)
 	}
 
 	fmt.Println("Users table reset successully")
@@ -121,8 +117,7 @@ func HandlerAggregate(s *State, cmd Command) error {
 
 func HandlerAddFeed(s *State, cmd Command) error {
 	if len(cmd.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "usage: %s <feed_name> <feed_url>", cmd.Name)
-		os.Exit(1)
+		return fmt.Errorf("usage: %s <name> <url>", cmd.Name)	
 	}
 
 	ctx := context.Background()
