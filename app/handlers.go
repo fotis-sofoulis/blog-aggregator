@@ -115,27 +115,18 @@ func HandlerAggregate(s *State, cmd Command) error {
 	return nil
 }
 
-func HandlerAddFeed(s *State, cmd Command) error {
+var HandlerAddFeed = func(s *State, cmd Command, user database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <name> <url>", cmd.Name)	
 	}
 
 	ctx := context.Background()
-	currUserName := s.Cfg.CurrentUserName
-	if currUserName == "" {
-		return fmt.Errorf("no users found, please register or login to add feed")
-	}
-
-	currUser, err := s.Db.GetUserByName(ctx, currUserName)
-	if err != nil {
-		return fmt.Errorf("could not find user: %w", err)
-	}
 
 	now := time.Now()
 	args := database.AddFeedParams{
 		ID: uuid.New(),
 		Name: cmd.Args[0],
-		UserID: currUser.ID,
+		UserID: user.ID,
 		Url: cmd.Args[1],
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -150,7 +141,7 @@ func HandlerAddFeed(s *State, cmd Command) error {
 		ID: uuid.New(),
 		CreatedAt: now,
 		UpdatedAt: now,
-		UserID: currUser.ID,
+		UserID: user.ID,
 		FeedID: feed.ID,
 	}
 
@@ -186,22 +177,12 @@ func HandlerGetFeeds(s *State, cmd Command) error {
 }
 
 // Follow Handlers
-func HandlerFollowFeed(s *State, cmd Command) error {
+var HandlerFollowFeed = func(s *State, cmd Command, user database.User) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: %s <url>", cmd.Name)	
 	}
 
 	ctx := context.Background()
-
-	currUserName := s.Cfg.CurrentUserName
-	if currUserName == "" {
-		return fmt.Errorf("no users found, please register or login to add feed")
-	}
-
-	user, err := s.Db.GetUserByName(ctx, currUserName)
-	if err != nil {
-		return fmt.Errorf("could not get current user: %w", err)
-	}
 
 	feed, err := s.Db.GetFeedByUrl(ctx, cmd.Args[0])
 	if err != nil {
@@ -226,26 +207,15 @@ func HandlerFollowFeed(s *State, cmd Command) error {
 	return nil
 }
 
-func HandlerFollowing(s *State, cmd Command) error {
+var HandlerFollowing = func(s *State, cmd Command, user database.User) error {
 	ctx := context.Background()
-
-	currUserName := s.Cfg.CurrentUserName
-	if currUserName == "" {
-		return fmt.Errorf("no users found, please register or login to add feed")
-	}
-
-	user, err := s.Db.GetUserByName(ctx, currUserName)
-	if err != nil {
-		return fmt.Errorf("could not get current user: %w", err)
-	}
-
 
 	feeds, err := s.Db.GetFeedFollowsForUser(ctx, user.ID)
 	if err != nil {
 		return fmt.Errorf("could not get feed follows for user: %w", err)
 	}
 
-	fmt.Printf("Feeds followed from %s\n", currUserName)
+	fmt.Printf("Feeds followed from %s\n", user.Name)
 	for _, feed := range feeds {
 		fmt.Printf("%s", feed.FeedName)
 	}

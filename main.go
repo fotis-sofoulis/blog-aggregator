@@ -38,10 +38,10 @@ func main() {
 	cmds.Register("reset", app.HandlerReset)
 	cmds.Register("users", app.HandlerGetUsers)
 	cmds.Register("agg", app.HandlerAggregate)
-	cmds.Register("addfeed", app.HandlerAddFeed)
+	cmds.Register("addfeed", app.MiddlewareLoggedIn(app.HandlerAddFeed))
 	cmds.Register("feeds", app.HandlerGetFeeds)
-	cmds.Register("follow", app.HandlerFollowFeed)
-	cmds.Register("following", app.HandlerFollowing)
+	cmds.Register("follow", app.MiddlewareLoggedIn(app.HandlerFollowFeed))
+	cmds.Register("following", app.MiddlewareLoggedIn(app.HandlerFollowing))
 
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: cli <command> [args...]")
