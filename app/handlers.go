@@ -223,3 +223,26 @@ var HandlerFollowing = func(s *State, cmd Command, user database.User) error {
 	return nil
 
 }
+
+var HandlerUnfollow = func(s *State, cmd Command, user database.User) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %s <url>", cmd.Name)	
+	}
+
+	ctx := context.Background()
+
+	args := database.DeleteFeedFollowByUserAndUrlParams{
+		UserID: user.ID,
+		Url: cmd.Args[0],
+	}
+
+	deleted, err := s.Db.DeleteFeedFollowByUserAndUrl(ctx, args)
+	if err != nil {
+		return fmt.Errorf("could not delete feed follows for user: %w", err)
+	}
+
+	fmt.Printf("User: %s unfollowed Feed: %s", user.Name, deleted.FeedName)
+
+	return nil
+
+}
