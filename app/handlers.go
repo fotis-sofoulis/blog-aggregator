@@ -10,6 +10,28 @@ import (
 	"github.com/google/uuid"
 )
 
+func scrapeFeeds(s *State, ctx context.Context) {
+	feed, err := s.Db.GetNextFeedToFetch(ctx)
+	if err != nil {
+		fmt.Printf("error fetching the feed from database")
+	}
+
+	if err := s.Db.MarkFeedFetched(ctx, feed.ID); err != nil {
+		fmt.Printf("could not mark the feed as fetched")
+	}
+
+	rssFeed, err := FetchFeed(ctx, feed.Url)
+	if err != nil {
+		fmt.Printf("could not fetch rss feed from url")
+	}
+
+	fmt.Printf("Feed: %s\n", rssFeed.Channel.Title)
+	fmt.Println("Items:")
+	for i, item := range rssFeed.Channel.Item {
+		fmt.Printf("%d)  %s\n", i+1, item.Title)
+	}
+}
+
 // User Handlers
 func HandlerLogin(s *State, cmd Command) error {
 	if len(cmd.Args) != 1 {
@@ -105,13 +127,23 @@ func HandlerGetUsers(s *State, cmd Command) error {
 
 // Feed Handlers
 func HandlerAggregate(s *State, cmd Command) error {
-	ctx := context.Background()
-	feed, err := FetchFeed(ctx, "https://www.wagslane.dev/index.xml") 
-	if err != nil {
-		return fmt.Errorf("couldn't fetch feed: %w", err)
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %s <time_interval>(ex. 1m, or 1h)", cmd.Name)
 	}
 
-	fmt.Println(feed)
+	ctx := context.Background()
+	timeBetweenRequests, err := time.ParseDuration(cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("error parsing time duration: %w", err)
+	}
+
+	ticker := time.NewTicker(timeBetweenRequests)
+
+	fmt.Printf("Collecting feeds every 1m0s")
+	for ; ; <- ticker.C {
+		scrapeFeeds(s, ctx)
+	}
+
 	return nil
 }
 
