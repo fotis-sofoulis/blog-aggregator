@@ -28,6 +28,9 @@ func scrapeFeeds(s *State, ctx context.Context) {
 	fmt.Printf("Feed: %s\n", rssFeed.Channel.Title)
 	fmt.Println("Items:")
 	for i, item := range rssFeed.Channel.Item {
+		if item.Title == "" {
+			continue
+		}
 		fmt.Printf("%d)  %s\n", i+1, item.Title)
 	}
 }
