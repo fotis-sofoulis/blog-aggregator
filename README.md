@@ -37,7 +37,7 @@ go build -o gator
 }
 ```
 
-### 🛢Database Setup
+### 🛢 Database Setup
 6. Install `Goose` if you don’t have it:
 ```bash
 go install github.com/pressly/goose/v3/cmd/goose@latest
