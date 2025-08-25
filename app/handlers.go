@@ -51,7 +51,7 @@ func HandlerLogin(s *State, cmd Command) error {
 		return fmt.Errorf("Error in setting user during login: %w", err)
 	}
 
-	fmt.Printf("user: %s has been set", name)
+	fmt.Printf("user: %s has been set\n", name)
 	return nil
 }
 
@@ -87,7 +87,7 @@ func HandlerRegister(s *State, cmd Command) error {
 		return fmt.Errorf("Error in setting user during login: %w", err)
 	}
 
-	fmt.Printf("Registed user: %s", user.Name)
+	fmt.Printf("Registed user: %s\n", user.Name)
 
 	return nil
 }
@@ -118,8 +118,9 @@ func HandlerGetUsers(s *State, cmd Command) error {
 	for _, user := range users {
 		if user.Name == currUserName {
 			fmt.Printf("* %s (current)\n", user.Name)
+		} else {
+			fmt.Printf("* %s\n", user.Name)
 		}
-		fmt.Printf("* %s\n", user.Name)
 	}
 
 	return nil
