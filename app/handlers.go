@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fotis-sofoulis/blog-aggregator/internal/database"
@@ -25,14 +28,37 @@ func scrapeFeeds(s *State, ctx context.Context) {
 		fmt.Printf("could not fetch rss feed from url")
 	}
 
-	fmt.Printf("Feed: %s\n", rssFeed.Channel.Title)
-	fmt.Println("Items:")
-	for i, item := range rssFeed.Channel.Item {
+	for _, item := range rssFeed.Channel.Item {
 		if item.Title == "" {
 			continue
 		}
-		fmt.Printf("%d)  %s\n", i+1, item.Title)
+
+		publishedAt := time.Now()
+		if t, err := time.Parse(time.RFC1123Z, item.PubDate); err == nil {
+			publishedAt = t
+		}
+
+		args := database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: item.Description != ""},
+			PublishedAt: publishedAt,
+			FeedID:      feed.ID,
+		}
+
+		_, err := s.Db.CreatePost(ctx, args)
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				continue
+			}
+			fmt.Printf("Couldn't create post: %v", err)
+			continue
+		}
 	}
+	fmt.Printf("Feed %s collected, %v posts found\n", feed.Name, len(rssFeed.Channel.Item))
 }
 
 // User Handlers
@@ -262,7 +288,7 @@ var HandlerFollowing = func(s *State, cmd Command, user database.User) error {
 
 var HandlerUnfollow = func(s *State, cmd Command, user database.User) error {
 	if len(cmd.Args) != 1 {
-		return fmt.Errorf("usage: %s <url>", cmd.Name)	
+		return fmt.Errorf("usage: %s <url>", cmd.Name)
 	}
 
 	ctx := context.Background()
@@ -281,4 +307,42 @@ var HandlerUnfollow = func(s *State, cmd Command, user database.User) error {
 
 	return nil
 
+}
+
+var HandlerBrowse = func(s *State, cmd Command, user database.User) error {
+	var limit int
+	switch len(cmd.Args) {
+	case 0:
+		limit = 2
+	case 1:
+		l, err := strconv.Atoi(cmd.Args[0])
+		if err != nil || l <= 0 {
+			return fmt.Errorf("invalid limit. Must be non-zero positive number: %w", err)
+		}
+		limit = l
+	default:
+		return errors.New("too many arguments. provide only an optional limit")
+	}
+
+	ctx := context.Background()
+	args := database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit: int32(limit),
+	}
+
+	posts, err := s.Db.GetPostsForUser(ctx, args)
+	if err != nil {
+		return fmt.Errorf("couldn't get posts for user: %w", err)
+	}
+
+	fmt.Printf("Found %d posts for user %s:\n", len(posts), user.Name)
+	for _, post := range posts {
+		fmt.Printf("%s from %s\n", post.PublishedAt.Format("Mon Jan 2"), post.FeedName)
+		fmt.Printf("--- %s ---\n", post.Title)
+		fmt.Printf("    %v\n", post.Description.String)
+		fmt.Printf("Link: %s\n", post.Url)
+		fmt.Println("=====================================")
+	}
+
+	return nil
 }
